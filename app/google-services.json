@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "693352116829",
+    "firebase_url": "https://gym4-7afbd.firebaseio.com",
+    "project_id": "gym4-7afbd",
+    "storage_bucket": "gym4-7afbd.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:693352116829:android:14e8f4675522abe4",
+        "android_client_info": {
+          "package_name": "Mygymmate.gymmate"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "693352116829-sbg146t9sdqicgok1ljcrjv9a8jd4b0a.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "Mygymmate.gymmate",
+            "certificate_hash": "a378790cbbbc5ef8c927d70357a4e4ed01acd83f"
+          }
+        },
+        {
+          "client_id": "693352116829-gfh7l29990q4l26dpqhq1mdvcsnv5mp0.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC75JODP98jaRo98iPbKejgXPdZ-2hI54g"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 2,
+          "other_platform_oauth_client": [
+            {
+              "client_id": "693352116829-gfh7l29990q4l26dpqhq1mdvcsnv5mp0.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

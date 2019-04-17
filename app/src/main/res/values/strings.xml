@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">GymMate</string>
+    <string-array name="monedas_array">
+        <item>Us$</item>
+        <item>€</item>
+        <item>Mx$</item>
+
+    </string-array>
+</resources>
