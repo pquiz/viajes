@@ -7,7 +7,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -63,7 +62,6 @@ public class ViajesAdaptador extends RecyclerView.Adapter<ViajesAdaptador.TaskVi
         taskViewHolder.lugar.setText(viaje.getLugar());
         taskViewHolder.nombre.setText(viaje.getNombre());
         taskViewHolder.uid.setText(viaje.getUuid());
-
 
     }
 

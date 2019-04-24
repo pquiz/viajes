@@ -6,4 +6,12 @@
         <item>Mx$</item>
 
     </string-array>
+    <string-array name="tipo_gastos_array">
+        <item>Transporte</item>
+        <item>Hospedaje</item>
+        <item>Alimentacion</item>
+        <item>Varios</item>
+        <item>Taxis</item>
+        <item>Propinas</item>
+    </string-array>
 </resources>

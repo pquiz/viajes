@@ -13,7 +13,11 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.DialogFragment;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.DividerItemDecoration;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.text.format.DateFormat;
+import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -32,6 +36,7 @@ import com.google.android.libraries.places.api.model.Place;
 import com.google.android.libraries.places.api.net.PlacesClient;
 import com.google.android.libraries.places.widget.Autocomplete;
 import com.google.android.libraries.places.widget.model.AutocompleteActivityMode;
+import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -46,8 +51,10 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 
+import static android.support.v7.widget.DividerItemDecoration.VERTICAL;
+
 public class AgregaViajeActivity extends AppCompatActivity implements AdapterView.OnItemSelectedListener, GoogleApiClient.ConnectionCallbacks,
-        GoogleApiClient.OnConnectionFailedListener {
+        GoogleApiClient.OnConnectionFailedListener,CostoAdaptador.CostoClickListener {
     private static final int PERMISSIONS_REQUEST_FINE_LOCATION = 111;
     private static final int PLACEPICKERREQUEST = 1;
     TextView lugar;
@@ -66,15 +73,18 @@ public class AgregaViajeActivity extends AppCompatActivity implements AdapterVie
     private FirebaseDatabase mDataBase;
     private DatabaseReference mreference;
     private String uuid;
-    private boolean modificar=false;
-private ViajeMensaje viaje;
+    private boolean modificar = false;
+    private ViajeMensaje viaje;
+    private RecyclerView costo_recycler;
+    private CostoAdaptador mCostoAdapter;
+    private ChildEventListener mChildEventListener;
     public void agregaViaje(View view) {
         mDataBase = FirebaseDatabase.getInstance();
-        if(!modificar){
-        mreference = mDataBase.getReference().child(userId);
+        if (!modificar) {
+            mreference = mDataBase.getReference().child(userId);
             generaViaje();
             mreference.push().setValue(viaje);
-        }else{
+        } else {
             mreference = mDataBase.getReference().child(userId).child(uuid);
             generaViaje();
             mreference.setValue(viaje);
@@ -84,7 +94,7 @@ private ViajeMensaje viaje;
 
     private void generaViaje() {
         viaje = new ViajeMensaje();
-        if(modificar)viaje.setUuid(uuid);
+        if (modificar) viaje.setUuid(uuid);
         viaje.setNombre(nombre.getText().toString());
         viaje.setMotivo(motivo.getText().toString());
         viaje.setFechaFin(fFin.getTime());
@@ -98,7 +108,7 @@ private ViajeMensaje viaje;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        mContext=this;
+        mContext = this;
         setContentView(R.layout.activity_agrega_viaje);
         if (savedInstanceState != null) {
             userId = savedInstanceState.getString("userId");
@@ -107,7 +117,7 @@ private ViajeMensaje viaje;
         Intent intent = getIntent();
         userId = intent.getStringExtra("userId");
         uuid = intent.getStringExtra("uuid");
-        botonAgrega=(Button)findViewById(R.id.botonagrega);
+        botonAgrega = (Button) findViewById(R.id.botonagrega);
 
 
         spinner = (Spinner) findViewById(R.id.spinner);
@@ -137,23 +147,44 @@ private ViajeMensaje viaje;
         motivo = (EditText) findViewById(R.id.motivo);
         rfc = (EditText) findViewById(R.id.rfc);
         if (uuid != null) {
+            costo_recycler = findViewById(R.id.costo_recycler);
+            costo_recycler.setLayoutManager(new LinearLayoutManager(this));
 
+            // Initialize the adapter and attach it to the RecyclerView
+            mCostoAdapter = new CostoAdaptador(this, this);
+            mCostoAdapter.setCostoEntries(null);
+            costo_recycler.setAdapter(mCostoAdapter);
+
+            DividerItemDecoration decoration = new DividerItemDecoration(getApplicationContext(), VERTICAL);
+            costo_recycler.addItemDecoration(decoration);
             botonAgrega.setText("Modificar viaje");
-            modificar=true;
+            modificar = true;
             mDataBase = FirebaseDatabase.getInstance();
             mreference = mDataBase.getReference().child(userId).child(uuid);
             mreference.addValueEventListener(new ValueEventListener() {
                 @Override
                 public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                    GenericTypeIndicator<ViajeMensaje> t = new GenericTypeIndicator<ViajeMensaje>() {};
+                    GenericTypeIndicator<ViajeMensaje> t = new GenericTypeIndicator<ViajeMensaje>() {
+                    };
+
                     ViajeMensaje viejeConsulta = dataSnapshot.getValue(t);
+                    mCostoAdapter.setCostoEntries(null);
+                    for(DataSnapshot ds : dataSnapshot.getChildren()) {
+                        try{
+                        CostoMensaje commandObject = ds.getValue(CostoMensaje.class);
+                        mCostoAdapter.addEntrie(commandObject);
+                        }
+                        catch (Exception e){}
+
+                    }
+                    Toast.makeText(mContext,"cambio los datos"+dataSnapshot.getChildrenCount(),Toast.LENGTH_LONG).show();
                     lugar.setText(viejeConsulta.getLugar());
                     SimpleDateFormat dateFormat = new SimpleDateFormat("dd/mm/yyyy");
                     String strDate = dateFormat.format(viejeConsulta.getFechaInicio());
                     fechaInicio.setText(strDate);
-                    fInicio=new Date(viejeConsulta.getFechaInicio());
-                    fFin=new Date(viejeConsulta.getFechaFin());
-                     strDate = dateFormat.format(viejeConsulta.getFechaFin());
+                    fInicio = new Date(viejeConsulta.getFechaInicio());
+                    fFin = new Date(viejeConsulta.getFechaFin());
+                    strDate = dateFormat.format(viejeConsulta.getFechaFin());
                     fechaFin.setText(strDate);
                     nombre.setText(viejeConsulta.getNombre());
                     motivo.setText(viejeConsulta.getMotivo());
@@ -238,7 +269,13 @@ private ViajeMensaje viaje;
     public void agregaCosto(View view) {
         Intent intent = new Intent(this, AgregaCosto.class);
         intent.putExtra("userId", userId);
+        intent.putExtra("viaje_uuid", uuid);
         startActivity(intent);
+    }
+
+    @Override
+    public void onItemClickListener(String itemId) {
+
     }
 
     public static class TimePickerFragment extends DialogFragment

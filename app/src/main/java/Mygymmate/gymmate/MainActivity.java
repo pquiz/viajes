@@ -53,7 +53,6 @@ public class MainActivity extends AppCompatActivity implements ViajesAdaptador.I
     private FirebaseAuth mFirebaseAuth;
     private FirebaseAuth.AuthStateListener mAuth;
     private Context mContext;
-    private TextView textView;
     private RecyclerView mRecyclerView;
     private ViajesAdaptador mAdapter;
     private String userId;
@@ -62,7 +61,6 @@ public class MainActivity extends AppCompatActivity implements ViajesAdaptador.I
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         // Choose authentication providers
-        textView = (TextView) findViewById(R.id.text_hello);
         mRecyclerView = findViewById(R.id.viajes_recycler);
         mRecyclerView.setLayoutManager(new LinearLayoutManager(this));
 
@@ -84,7 +82,7 @@ public class MainActivity extends AppCompatActivity implements ViajesAdaptador.I
         mFirebaseAuth = FirebaseAuth.getInstance();
         mContext = this;
         try {
-            readXLS();
+            //readXLS();
         } catch (Exception e) {
         }
         mAuth = new FirebaseAuth.AuthStateListener() {
@@ -143,7 +141,7 @@ public class MainActivity extends AppCompatActivity implements ViajesAdaptador.I
         };
         mreference.addChildEventListener(mChildEventListener);
     }
-
+/*
     private void readXLS() throws IOException {
         InputStream myInput;
 // initialize asset manager
@@ -211,7 +209,7 @@ public class MainActivity extends AppCompatActivity implements ViajesAdaptador.I
 
     }
 
-
+*/
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);

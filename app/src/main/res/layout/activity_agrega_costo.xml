@@ -36,6 +36,7 @@
             android:text="Agrega fecha costo"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toEndOf="@+id/agregafechacosto"
+            android:onClick="agregaFecha"
             app:layout_constraintTop_toTopOf="parent" />
 
         <Spinner
@@ -130,7 +131,7 @@
             android:layout_marginEnd="32dp"
             android:ems="10"
             android:hint="Monto"
-            android:inputType="number"
+            android:inputType="numberDecimal"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/tipo_moneda_gasto" />
@@ -144,7 +145,7 @@
             android:layout_marginEnd="32dp"
             android:ems="10"
             android:hint="Adicional"
-            android:inputType="number"
+            android:inputType="numberDecimal"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/monto_costo" />
@@ -158,7 +159,7 @@
             android:layout_marginEnd="32dp"
             android:ems="10"
             android:hint="IVA"
-            android:inputType="number"
+            android:inputType="numberDecimal"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/adicional_costo" />
@@ -166,14 +167,14 @@
         <Button
             android:id="@+id/agregar_costo"
             style="@style/FirebaseUI.Button"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
             android:layout_marginTop="32dp"
-            android:layout_marginEnd="8dp"
+            android:layout_marginEnd="32dp"
+            android:onClick="agregaCosto"
             android:text="Agrega costo"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="@+id/iva_costo"
             app:layout_constraintTop_toBottomOf="@+id/iva_costo" />
     </android.support.constraint.ConstraintLayout>
 </ScrollView>

@@ -5,6 +5,11 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     >
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        android:id="@+id/uiid_costo"/>
 <TextView
     android:id="@+id/text_clave_costo"
     android:layout_width="match_parent"
