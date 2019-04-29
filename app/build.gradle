@@ -54,7 +54,7 @@ dependencies {
         exclude module: 'appcompat-v7'
         exclude module: 'support-v4'
     }
-
+    implementation 'id.zelory:compressor:2.1.0'
     implementation 'com.itextpdf:itextg:5.5.10'
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'com.android.support.test:runner:1.0.2'

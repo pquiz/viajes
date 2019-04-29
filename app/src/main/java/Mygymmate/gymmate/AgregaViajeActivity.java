@@ -7,10 +7,12 @@ import android.app.TimePickerDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.DialogFragment;
+import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.DividerItemDecoration;
@@ -44,6 +46,7 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.GenericTypeIndicator;
 import com.google.firebase.database.ValueEventListener;
 
+import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -173,6 +176,7 @@ public class AgregaViajeActivity extends AppCompatActivity implements AdapterVie
                     for (DataSnapshot ds : dataSnapshot.getChildren()) {
                         try {
                             CostoMensaje commandObject = ds.getValue(CostoMensaje.class);
+                            commandObject.setUuid(ds.getKey());
                             mCostoAdapter.addEntrie(commandObject);
                         } catch (Exception e) {
                         }
@@ -200,7 +204,16 @@ public class AgregaViajeActivity extends AppCompatActivity implements AdapterVie
 
         }
     }
-
+public void enviaCorreo(File file){
+    Intent intent = new Intent();
+    intent.setAction(Intent.ACTION_SEND_MULTIPLE);
+    Uri contentUri = FileProvider.getUriForFile(mContext, "Mygymmate.gymmate.fileprovider", file);
+    ArrayList<Uri> files = new ArrayList<Uri>();
+    files.add(contentUri);
+    intent.putParcelableArrayListExtra(Intent.EXTRA_STREAM, files);
+    intent.setType("application/pdf");
+    startActivity(intent);
+}
     public void agregaFechaInicio(View view) {
         bandera = true;
         DialogFragment newFragment = new TimePickerFragment();
@@ -282,6 +295,8 @@ public class AgregaViajeActivity extends AppCompatActivity implements AdapterVie
         intent.putExtra("viaje_uuid", uuid);
         intent.putExtra("finicio",fInicio.getTime());
         intent.putExtra("ffin",fFin.getTime());
+        intent.putExtra("costo_uuid",itemId);
+
         //nodocosto
         startActivity(intent);
     }

@@ -48,6 +48,8 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 
+import id.zelory.compressor.Compressor;
+
 import static java.security.AccessController.getContext;
 
 public class AgregaCosto extends AppCompatActivity implements AdapterView.OnItemSelectedListener {
@@ -79,6 +81,8 @@ public class AgregaCosto extends AppCompatActivity implements AdapterView.OnItem
     private EditText iva_costo;
     private Button agregar_costo;
     private CostoMensaje costoMensaje;
+    private Uri agregaPdf, agregaXML, agregaIMG;
+
 
     public void agregaCosto(View view) {
         mDataBase = FirebaseDatabase.getInstance();
@@ -94,6 +98,24 @@ public class AgregaCosto extends AppCompatActivity implements AdapterView.OnItem
         finish();
     }
 
+    public void subeArchivoFirebase(Uri archivoSubir) {
+        StorageReference archivo = mStorageReference.child(archivoSubir.getLastPathSegment());
+        uploadTask = archivo.putFile(archivoSubir);
+        uploadTask.addOnFailureListener(new OnFailureListener() {
+            @Override
+            public void onFailure(Exception exception) {
+                Toast.makeText(context, "error", Toast.LENGTH_LONG).show();
+            }
+        }).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+            @Override
+            public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+                // taskSnapshot.getMetadata() contains file metadata such as size, content-type, etc.
+                // ...
+
+            }
+        });
+    }
+
     private void generaCosto() {
         costoMensaje = new CostoMensaje();
         if (modificar) costoMensaje.setUuid(costo_uuid);
@@ -107,7 +129,24 @@ public class AgregaCosto extends AppCompatActivity implements AdapterView.OnItem
             costoMensaje.setMonto(new Double(monto_costo.getText().toString()));
             costoMensaje.setAdicional(new Double(adicional_costo.getText().toString()));
             costoMensaje.setIva(new Double(iva_costo.getText().toString()));
+            if(agregaPdf!=null){
+                subeArchivoFirebase(agregaPdf);
+                costoMensaje.setPdf(agregaPdf.getLastPathSegment());
+            }
+            if(agregaXML!=null){
+                subeArchivoFirebase(agregaXML);
+                costoMensaje.setXml(agregaXML.getLastPathSegment());
+            }
+            if(agregaIMG!=null){
+
+                Uri tem=convierteImgToPdf(agregaIMG);
+                subeArchivoFirebase(tem);
+                costoMensaje.setTicket(tem.getLastPathSegment());
+            }
+
+
         } catch (Exception e) {
+            e.printStackTrace();
             System.out.println(e.getStackTrace());
         }
     }
@@ -124,6 +163,7 @@ public class AgregaCosto extends AppCompatActivity implements AdapterView.OnItem
         costo_uuid = intent.getStringExtra("costo_uuid");
         finicio = intent.getLongExtra("finicio", -1);
         ffin = intent.getLongExtra("ffin", -1);
+        agregaIMG = agregaXML = agregaPdf = null;
 
         //firebase
         mFirebaseStorage = FirebaseStorage.getInstance();
@@ -219,64 +259,61 @@ public class AgregaCosto extends AppCompatActivity implements AdapterView.OnItem
         startActivityForResult(Intent.createChooser(intent, "Agrega Ticket"), RC_IMG_PICKER);
     }
 
+    public Uri convierteImgToPdf(Uri archivoIMG) {
+        Uri respuesta=null;
+        try {
+
+            // getUriRealPathAboveKitkat(ctx, uri);
+            File actualImageFile = new File(RealPathUtil.getRealPath(this, archivoIMG));
+            File compressedImageFile = new Compressor(this).compressToFile(actualImageFile);
+            File imagePath = new File(getFilesDir(), "images");
+            String nombrePdf=actualImageFile.getName().split("\\.")[0]+".pdf";
+            File file = new File(imagePath, nombrePdf);
+
+            file.getParentFile().mkdirs();
+            Image img = Image.getInstance(compressedImageFile.getAbsolutePath());
+
+
+            Document document = new Document(img);
+
+            PdfWriter.getInstance(document, new FileOutputStream(file));
+
+            document.open();
+
+
+            document.setPageSize(img);
+
+            document.newPage();
+
+            img.setAbsolutePosition(0, 0);
+
+            document.add(img);
+
+
+            document.close();
+            respuesta=FileProvider.getUriForFile(context, "Mygymmate.gymmate.fileprovider", file);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println(e.getMessage());
+        }
+        return respuesta;
+    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (resultCode == RESULT_OK) {
             Uri ruta = data.getData();
-            StorageReference archivo = mStorageReference.child(ruta.getLastPathSegment());
-
-            try {
-                File imagePath = new File(getFilesDir(), "images");
-                File file = new File(imagePath, "otro.pdf");
-
-                file.getParentFile().mkdirs();
-               // getUriRealPathAboveKitkat(ctx, uri);
-                Image img = Image.getInstance( RealPathUtil.getRealPath(this,ruta));
-
-
-                Document document = new Document(img);
-
-                PdfWriter.getInstance(document, new FileOutputStream(file));
-
-                document.open();
-
-
-                document.setPageSize(img);
-
-                document.newPage();
-
-                img.setAbsolutePosition(0, 0);
-
-                document.add(img);
-
-
-                document.close();
-                Intent intent = new Intent();
-                intent.setAction(Intent.ACTION_SEND_MULTIPLE);
-                Uri contentUri = FileProvider.getUriForFile(context, "Mygymmate.gymmate.fileprovider", file);
-                ArrayList<Uri> files = new ArrayList<Uri>();
-                files.add(contentUri);
-                intent.putParcelableArrayListExtra(Intent.EXTRA_STREAM, files);
-                intent.setType("application/pdf");
-                startActivity(intent);
-            } catch (Exception e) {
-                e.printStackTrace();
+            if (requestCode == RC_PDF_PICKER) {
+                agregaPdf = ruta;
             }
-            uploadTask = archivo.putFile(ruta);
-            uploadTask.addOnFailureListener(new OnFailureListener() {
-                @Override
-                public void onFailure(Exception exception) {
-                    Toast.makeText(context, "", Toast.LENGTH_LONG).show();
-                }
-            }).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
-                @Override
-                public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
-                    // taskSnapshot.getMetadata() contains file metadata such as size, content-type, etc.
-                    // ...
-
-                }
-            });
+            if (requestCode == RC_IMG_PICKER) {
+                agregaIMG = ruta;
+            }
+            if (requestCode == RC_XML_PICKER) {
+                agregaXML = ruta;
+            }
 
 
         }
