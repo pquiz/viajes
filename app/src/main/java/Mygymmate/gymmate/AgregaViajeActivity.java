@@ -54,7 +54,7 @@ import java.util.List;
 import static android.support.v7.widget.DividerItemDecoration.VERTICAL;
 
 public class AgregaViajeActivity extends AppCompatActivity implements AdapterView.OnItemSelectedListener, GoogleApiClient.ConnectionCallbacks,
-        GoogleApiClient.OnConnectionFailedListener,CostoAdaptador.CostoClickListener {
+        GoogleApiClient.OnConnectionFailedListener, CostoAdaptador.CostoClickListener {
     private static final int PERMISSIONS_REQUEST_FINE_LOCATION = 111;
     private static final int PLACEPICKERREQUEST = 1;
     TextView lugar;
@@ -78,6 +78,7 @@ public class AgregaViajeActivity extends AppCompatActivity implements AdapterVie
     private RecyclerView costo_recycler;
     private CostoAdaptador mCostoAdapter;
     private ChildEventListener mChildEventListener;
+
     public void agregaViaje(View view) {
         mDataBase = FirebaseDatabase.getInstance();
         if (!modificar) {
@@ -169,15 +170,14 @@ public class AgregaViajeActivity extends AppCompatActivity implements AdapterVie
 
                     ViajeMensaje viejeConsulta = dataSnapshot.getValue(t);
                     mCostoAdapter.setCostoEntries(null);
-                    for(DataSnapshot ds : dataSnapshot.getChildren()) {
-                        try{
-                        CostoMensaje commandObject = ds.getValue(CostoMensaje.class);
-                        mCostoAdapter.addEntrie(commandObject);
+                    for (DataSnapshot ds : dataSnapshot.getChildren()) {
+                        try {
+                            CostoMensaje commandObject = ds.getValue(CostoMensaje.class);
+                            mCostoAdapter.addEntrie(commandObject);
+                        } catch (Exception e) {
                         }
-                        catch (Exception e){}
 
                     }
-                    Toast.makeText(mContext,"cambio los datos"+dataSnapshot.getChildrenCount(),Toast.LENGTH_LONG).show();
                     lugar.setText(viejeConsulta.getLugar());
                     SimpleDateFormat dateFormat = new SimpleDateFormat("dd/mm/yyyy");
                     String strDate = dateFormat.format(viejeConsulta.getFechaInicio());
@@ -189,7 +189,7 @@ public class AgregaViajeActivity extends AppCompatActivity implements AdapterVie
                     nombre.setText(viejeConsulta.getNombre());
                     motivo.setText(viejeConsulta.getMotivo());
                     rfc.setText(viejeConsulta.getRfc());
-
+                    spinner.setSelection(((ArrayAdapter) spinner.getAdapter()).getPosition(viejeConsulta.getMoneda()));
                 }
 
                 @Override
@@ -270,12 +270,20 @@ public class AgregaViajeActivity extends AppCompatActivity implements AdapterVie
         Intent intent = new Intent(this, AgregaCosto.class);
         intent.putExtra("userId", userId);
         intent.putExtra("viaje_uuid", uuid);
+        intent.putExtra("finicio",fInicio.getTime());
+        intent.putExtra("ffin",fFin.getTime());
         startActivity(intent);
     }
 
     @Override
     public void onItemClickListener(String itemId) {
-
+        Intent intent = new Intent(this, AgregaCosto.class);
+        intent.putExtra("userId", userId);
+        intent.putExtra("viaje_uuid", uuid);
+        intent.putExtra("finicio",fInicio.getTime());
+        intent.putExtra("ffin",fFin.getTime());
+        //nodocosto
+        startActivity(intent);
     }
 
     public static class TimePickerFragment extends DialogFragment

@@ -5,9 +5,11 @@ import android.app.Dialog;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.Environment;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.DialogFragment;
+import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
@@ -31,18 +33,27 @@ import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
+import com.itextpdf.text.Document;
+import com.itextpdf.text.Image;
+import com.itextpdf.text.pdf.PdfWriter;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.net.URL;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+
+import static java.security.AccessController.getContext;
 
 public class AgregaCosto extends AppCompatActivity implements AdapterView.OnItemSelectedListener {
     private static final int RC_PDF_PICKER = 2;
     private static final int RC_XML_PICKER = 3;
+    private static final int RC_IMG_PICKER = 4;
     private FirebaseStorage mFirebaseStorage;
     private StorageReference mStorageReference;
     private FirebaseDatabase mDataBase;
@@ -55,6 +66,7 @@ public class AgregaCosto extends AppCompatActivity implements AdapterView.OnItem
     private boolean modificar = false;
     private static TextView agregafechacosto;
     static Date fecha;
+    static long finicio, ffin;
     private Spinner tipo_gasto;
     private EditText establecimiento_gasto;
     private EditText concepto_gasto;
@@ -110,6 +122,9 @@ public class AgregaCosto extends AppCompatActivity implements AdapterView.OnItem
         userId = intent.getStringExtra("userId");
         viaje_uuid = intent.getStringExtra("viaje_uuid");
         costo_uuid = intent.getStringExtra("costo_uuid");
+        finicio = intent.getLongExtra("finicio", -1);
+        ffin = intent.getLongExtra("ffin", -1);
+
         //firebase
         mFirebaseStorage = FirebaseStorage.getInstance();
         mStorageReference = mFirebaseStorage.getReference("viajes");
@@ -163,6 +178,8 @@ public class AgregaCosto extends AppCompatActivity implements AdapterView.OnItem
                     monto_costo.setText(costoConsulta.getMonto().toString());
                     adicional_costo.setText(costoConsulta.getAdicional().toString());
                     iva_costo.setText(costoConsulta.getIva().toString());
+                    tipo_gasto.setSelection(((ArrayAdapter) tipo_gasto.getAdapter()).getPosition(costoConsulta.getClave()));
+                    tipo_moneda_gasto.setSelection(((ArrayAdapter) tipo_moneda_gasto.getAdapter()).getPosition(costoConsulta.getMoneda()));
                 }
 
                 @Override
@@ -173,12 +190,14 @@ public class AgregaCosto extends AppCompatActivity implements AdapterView.OnItem
         }
 
     }
+
     public void agregaFecha(View view) {
 
         DialogFragment newFragment = new CostoTimePickerFragment();
         newFragment.show(getSupportFragmentManager(), "timePicker");
 
     }
+
     public void agregaPDF(View view) {
         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
         intent.setType("application/pdf");
@@ -193,14 +212,57 @@ public class AgregaCosto extends AppCompatActivity implements AdapterView.OnItem
         startActivityForResult(Intent.createChooser(intent, "Agrega XML"), RC_XML_PICKER);
     }
 
+    public void agregaIMG(View view) {
+        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.setType("image/*");
+        intent.putExtra(Intent.EXTRA_LOCAL_ONLY, true);
+        startActivityForResult(Intent.createChooser(intent, "Agrega Ticket"), RC_IMG_PICKER);
+    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (resultCode == RESULT_OK) {
             Uri ruta = data.getData();
             StorageReference archivo = mStorageReference.child(ruta.getLastPathSegment());
-            InputStream stream = null;
 
+            try {
+                File imagePath = new File(getFilesDir(), "images");
+                File file = new File(imagePath, "otro.pdf");
+
+                file.getParentFile().mkdirs();
+               // getUriRealPathAboveKitkat(ctx, uri);
+                Image img = Image.getInstance( RealPathUtil.getRealPath(this,ruta));
+
+
+                Document document = new Document(img);
+
+                PdfWriter.getInstance(document, new FileOutputStream(file));
+
+                document.open();
+
+
+                document.setPageSize(img);
+
+                document.newPage();
+
+                img.setAbsolutePosition(0, 0);
+
+                document.add(img);
+
+
+                document.close();
+                Intent intent = new Intent();
+                intent.setAction(Intent.ACTION_SEND_MULTIPLE);
+                Uri contentUri = FileProvider.getUriForFile(context, "Mygymmate.gymmate.fileprovider", file);
+                ArrayList<Uri> files = new ArrayList<Uri>();
+                files.add(contentUri);
+                intent.putParcelableArrayListExtra(Intent.EXTRA_STREAM, files);
+                intent.setType("application/pdf");
+                startActivity(intent);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
             uploadTask = archivo.putFile(ruta);
             uploadTask.addOnFailureListener(new OnFailureListener() {
                 @Override
@@ -230,6 +292,7 @@ public class AgregaCosto extends AppCompatActivity implements AdapterView.OnItem
 
     }
 
+
     public static class CostoTimePickerFragment extends DialogFragment
             implements DatePickerDialog.OnDateSetListener {
 
@@ -240,9 +303,11 @@ public class AgregaCosto extends AppCompatActivity implements AdapterView.OnItem
             int year = c.get(Calendar.YEAR);
             int month = c.get(Calendar.MONTH);
             int day = c.get(Calendar.DAY_OF_MONTH);
-
+            Dialog d = new DatePickerDialog(getActivity(), this, year, month, day);
+            ((DatePickerDialog) d).getDatePicker().setMinDate(finicio);
+            ((DatePickerDialog) d).getDatePicker().setMaxDate(ffin);
             // Create a new instance of TimePickerDialog and return it
-            return new DatePickerDialog(getActivity(), this, year, month, day);
+            return d;
         }
 
         public void onDateSet(DatePicker view, int year, int month, int day) {

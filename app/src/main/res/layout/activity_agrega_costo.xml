@@ -86,30 +86,41 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/concepto_gasto" />
 
-        <Button
-            android:id="@+id/button6"
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:id="@+id/agrupador_boton"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="32dp"
             android:layout_marginTop="32dp"
-            android:onClick="agregaPDF"
-            android:text="Agrega pdf"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/folio_factura" />
+            app:layout_constraintEnd_toEndOf="@+id/folio_factura"
+            app:layout_constraintStart_toStartOf="@+id/folio_factura"
+            app:layout_constraintTop_toBottomOf="@+id/folio_factura">
+
+            <Button
+                android:id="@+id/button6"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+
+            android:layout_weight="1"
+                android:onClick="agregaPDF"
+                android:text="PDF" />
 
 
-        <Button
-            android:id="@+id/button7"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:layout_marginTop="32dp"
-            android:layout_marginEnd="32dp"
-            android:text="Agrega xml"
-            android:onClick="agregaXML"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toEndOf="@+id/button6"
-            app:layout_constraintTop_toBottomOf="@+id/folio_factura" />
+            <Button
+                android:id="@+id/button7"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:onClick="agregaXML"
+                android:text="XML" />
+            <Button
+                android:id="@+id/img_boton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:onClick="agregaIMG"
+                android:text="Ticket" />
+
+        </LinearLayout>
 
         <Spinner
             android:id="@+id/tipo_moneda_gasto"
@@ -120,7 +131,7 @@
             android:layout_marginEnd="32dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/button7" />
+            app:layout_constraintTop_toBottomOf="@+id/agrupador_boton" />
 
         <EditText
             android:id="@+id/monto_costo"

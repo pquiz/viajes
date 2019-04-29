@@ -12,6 +12,7 @@ public class CostoMensaje {
     private Double adicional;
     private Double iva;
     private String xml;
+    private String ticket;
     private Long fecha;
     private String uuid;
 
@@ -30,6 +31,14 @@ public class CostoMensaje {
         this.iva = iva;
         this.xml = xml;
         this.fecha = fecha;
+    }
+
+    public String getTicket() {
+        return ticket;
+    }
+
+    public void setTicket(String ticket) {
+        this.ticket = ticket;
     }
 
     public String getClave() {
