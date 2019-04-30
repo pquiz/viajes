@@ -83,8 +83,19 @@ public class AgregaCosto extends AppCompatActivity implements AdapterView.OnItem
     private CostoMensaje costoMensaje;
     private Uri agregaPdf, agregaXML, agregaIMG;
 
-
+    public void enviaCorreo(Uri file){
+        Intent intent = new Intent();
+        intent.setAction(Intent.ACTION_SEND_MULTIPLE);
+       // Uri contentUri = FileProvider.getUriForFile(mContext, "Mygymmate.gymmate.fileprovider", file);
+        ArrayList<Uri> files = new ArrayList<Uri>();
+        files.add(file);
+        intent.putParcelableArrayListExtra(Intent.EXTRA_STREAM, files);
+        intent.setType("application/pdf");
+        startActivity(intent);
+    }
     public void agregaCosto(View view) {
+
+
         mDataBase = FirebaseDatabase.getInstance();
         if (!modificar) {
             mreference = mDataBase.getReference().child(userId).child(viaje_uuid);
@@ -98,7 +109,7 @@ public class AgregaCosto extends AppCompatActivity implements AdapterView.OnItem
         finish();
     }
 
-    public void subeArchivoFirebase(Uri archivoSubir) {
+    public void subeArchivoFirebase(Uri archivoSubir, final int tipo) {
         StorageReference archivo = mStorageReference.child(archivoSubir.getLastPathSegment());
         uploadTask = archivo.putFile(archivoSubir);
         uploadTask.addOnFailureListener(new OnFailureListener() {
@@ -111,13 +122,23 @@ public class AgregaCosto extends AppCompatActivity implements AdapterView.OnItem
             public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
                 // taskSnapshot.getMetadata() contains file metadata such as size, content-type, etc.
                 // ...
+                if (tipo == 1) {
+                    costoMensaje.setPdf(taskSnapshot.getMetadata().getReference().toString());
+                   // enviaCorreo(Uri.parse(taskSnapshot.getMetadata().getReference().toString()));
+                }
+                if (tipo == 2) {
+                    costoMensaje.setXml(taskSnapshot.getMetadata().getReference().toString());
+                }
+                if (tipo == 3) {
+                    costoMensaje.setTicket(taskSnapshot.getMetadata().getReference().toString());
+                }
 
             }
         });
     }
 
     private void generaCosto() {
-        costoMensaje = new CostoMensaje();
+
         if (modificar) costoMensaje.setUuid(costo_uuid);
         costoMensaje.setFecha(fecha.getTime());
         costoMensaje.setClave(tipo_gasto.getSelectedItem().toString());
@@ -129,20 +150,6 @@ public class AgregaCosto extends AppCompatActivity implements AdapterView.OnItem
             costoMensaje.setMonto(new Double(monto_costo.getText().toString()));
             costoMensaje.setAdicional(new Double(adicional_costo.getText().toString()));
             costoMensaje.setIva(new Double(iva_costo.getText().toString()));
-            if(agregaPdf!=null){
-                subeArchivoFirebase(agregaPdf);
-                costoMensaje.setPdf(agregaPdf.getLastPathSegment());
-            }
-            if(agregaXML!=null){
-                subeArchivoFirebase(agregaXML);
-                costoMensaje.setXml(agregaXML.getLastPathSegment());
-            }
-            if(agregaIMG!=null){
-
-                Uri tem=convierteImgToPdf(agregaIMG);
-                subeArchivoFirebase(tem);
-                costoMensaje.setTicket(tem.getLastPathSegment());
-            }
 
 
         } catch (Exception e) {
@@ -228,7 +235,7 @@ public class AgregaCosto extends AppCompatActivity implements AdapterView.OnItem
                 }
             });
         }
-
+        costoMensaje = new CostoMensaje();
     }
 
     public void agregaFecha(View view) {
@@ -260,14 +267,14 @@ public class AgregaCosto extends AppCompatActivity implements AdapterView.OnItem
     }
 
     public Uri convierteImgToPdf(Uri archivoIMG) {
-        Uri respuesta=null;
+        Uri respuesta = null;
         try {
 
             // getUriRealPathAboveKitkat(ctx, uri);
             File actualImageFile = new File(RealPathUtil.getRealPath(this, archivoIMG));
             File compressedImageFile = new Compressor(this).compressToFile(actualImageFile);
             File imagePath = new File(getFilesDir(), "images");
-            String nombrePdf=actualImageFile.getName().split("\\.")[0]+".pdf";
+            String nombrePdf = actualImageFile.getName().split("\\.")[0] + ".pdf";
             File file = new File(imagePath, nombrePdf);
 
             file.getParentFile().mkdirs();
@@ -291,7 +298,7 @@ public class AgregaCosto extends AppCompatActivity implements AdapterView.OnItem
 
 
             document.close();
-            respuesta=FileProvider.getUriForFile(context, "Mygymmate.gymmate.fileprovider", file);
+            respuesta = FileProvider.getUriForFile(context, "Mygymmate.gymmate.fileprovider", file);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -307,12 +314,19 @@ public class AgregaCosto extends AppCompatActivity implements AdapterView.OnItem
             Uri ruta = data.getData();
             if (requestCode == RC_PDF_PICKER) {
                 agregaPdf = ruta;
+                subeArchivoFirebase(agregaPdf, 1);
+                costoMensaje.setPdf(agregaPdf.getLastPathSegment());
             }
             if (requestCode == RC_IMG_PICKER) {
                 agregaIMG = ruta;
+                Uri tem = convierteImgToPdf(agregaIMG);
+                subeArchivoFirebase(tem, 3);
+                costoMensaje.setTicket(tem.getLastPathSegment());
             }
             if (requestCode == RC_XML_PICKER) {
                 agregaXML = ruta;
+                subeArchivoFirebase(agregaXML, 2);
+                costoMensaje.setXml(agregaXML.getLastPathSegment());
             }
 
 

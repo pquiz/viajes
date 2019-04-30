@@ -33,6 +33,8 @@ import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.libraries.places.api.Places;
 import com.google.android.libraries.places.api.model.Place;
 import com.google.android.libraries.places.api.net.PlacesClient;
@@ -45,8 +47,12 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.GenericTypeIndicator;
 import com.google.firebase.database.ValueEventListener;
+import com.google.firebase.storage.FileDownloadTask;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
 
 import java.io.File;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -75,6 +81,8 @@ public class AgregaViajeActivity extends AppCompatActivity implements AdapterVie
     private String userId;
     private FirebaseDatabase mDataBase;
     private DatabaseReference mreference;
+    private FirebaseStorage mFirebaseStorage;
+    private StorageReference mStorageReference;
     private String uuid;
     private boolean modificar = false;
     private ViajeMensaje viaje;
@@ -122,7 +130,8 @@ public class AgregaViajeActivity extends AppCompatActivity implements AdapterVie
         userId = intent.getStringExtra("userId");
         uuid = intent.getStringExtra("uuid");
         botonAgrega = (Button) findViewById(R.id.botonagrega);
-
+        //firebasestorage inicializar
+        mFirebaseStorage = FirebaseStorage.getInstance();
 
         spinner = (Spinner) findViewById(R.id.spinner);
 // Create an ArrayAdapter using the string array and a default spinner layout
@@ -177,8 +186,11 @@ public class AgregaViajeActivity extends AppCompatActivity implements AdapterVie
                         try {
                             CostoMensaje commandObject = ds.getValue(CostoMensaje.class);
                             commandObject.setUuid(ds.getKey());
+                            validaArchivos(commandObject);
                             mCostoAdapter.addEntrie(commandObject);
                         } catch (Exception e) {
+                            e.printStackTrace();
+                            System.out.println(e.getMessage());
                         }
 
                     }
@@ -204,16 +216,56 @@ public class AgregaViajeActivity extends AppCompatActivity implements AdapterVie
 
         }
     }
-public void enviaCorreo(File file){
-    Intent intent = new Intent();
-    intent.setAction(Intent.ACTION_SEND_MULTIPLE);
-    Uri contentUri = FileProvider.getUriForFile(mContext, "Mygymmate.gymmate.fileprovider", file);
-    ArrayList<Uri> files = new ArrayList<Uri>();
-    files.add(contentUri);
-    intent.putParcelableArrayListExtra(Intent.EXTRA_STREAM, files);
-    intent.setType("application/pdf");
-    startActivity(intent);
-}
+
+    public void validaArchivos(CostoMensaje costo_temp) {
+        try {
+            if (costo_temp.getPdf() != null) {
+                descargaArchivos(costo_temp.getPdf());
+            }
+            if (costo_temp.getXml() != null) {
+                descargaArchivos(costo_temp.getXml());
+            }
+            if (costo_temp.getTicket() != null) {
+                descargaArchivos(costo_temp.getTicket());
+            }
+        }catch (Exception e){
+            e.printStackTrace();
+            System.out.println(e.getMessage());
+        }
+    }
+
+    public void descargaArchivos(String url) throws IOException {
+        mStorageReference=mFirebaseStorage.getReferenceFromUrl(url);
+        File imagePath = new File(getFilesDir(), "images");
+        Uri uri=Uri.parse(url);
+
+
+        File localFile = new File(imagePath, uri.getLastPathSegment());
+Log.d("AgregaviajeActivity",localFile.getAbsolutePath());
+        mStorageReference.getFile(localFile).addOnSuccessListener(new OnSuccessListener<FileDownloadTask.TaskSnapshot>() {
+            @Override
+            public void onSuccess(FileDownloadTask.TaskSnapshot taskSnapshot) {
+                // Local temp file has been created
+            }
+        }).addOnFailureListener(new OnFailureListener() {
+            @Override
+            public void onFailure(@NonNull Exception exception) {
+                // Handle any errors
+            }
+        });
+    }
+
+    public void enviaCorreo(File file) {
+        Intent intent = new Intent();
+        intent.setAction(Intent.ACTION_SEND_MULTIPLE);
+        Uri contentUri = FileProvider.getUriForFile(mContext, "Mygymmate.gymmate.fileprovider", file);
+        ArrayList<Uri> files = new ArrayList<Uri>();
+        files.add(contentUri);
+        intent.putParcelableArrayListExtra(Intent.EXTRA_STREAM, files);
+        intent.setType("application/pdf");
+        startActivity(intent);
+    }
+
     public void agregaFechaInicio(View view) {
         bandera = true;
         DialogFragment newFragment = new TimePickerFragment();
@@ -283,8 +335,8 @@ public void enviaCorreo(File file){
         Intent intent = new Intent(this, AgregaCosto.class);
         intent.putExtra("userId", userId);
         intent.putExtra("viaje_uuid", uuid);
-        intent.putExtra("finicio",fInicio.getTime());
-        intent.putExtra("ffin",fFin.getTime());
+        intent.putExtra("finicio", fInicio.getTime());
+        intent.putExtra("ffin", fFin.getTime());
         startActivity(intent);
     }
 
@@ -293,9 +345,9 @@ public void enviaCorreo(File file){
         Intent intent = new Intent(this, AgregaCosto.class);
         intent.putExtra("userId", userId);
         intent.putExtra("viaje_uuid", uuid);
-        intent.putExtra("finicio",fInicio.getTime());
-        intent.putExtra("ffin",fFin.getTime());
-        intent.putExtra("costo_uuid",itemId);
+        intent.putExtra("finicio", fInicio.getTime());
+        intent.putExtra("ffin", fFin.getTime());
+        intent.putExtra("costo_uuid", itemId);
 
         //nodocosto
         startActivity(intent);
