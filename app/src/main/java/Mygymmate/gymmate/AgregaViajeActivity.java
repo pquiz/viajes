@@ -7,6 +7,7 @@ import android.app.TimePickerDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.res.AssetManager;
 import android.net.Uri;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -51,13 +52,29 @@ import com.google.firebase.storage.FileDownloadTask;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 
+import org.apache.poi.hssf.usermodel.HSSFCell;
+import org.apache.poi.hssf.usermodel.HSSFFormulaEvaluator;
+import org.apache.poi.hssf.usermodel.HSSFRow;
+import org.apache.poi.hssf.usermodel.HSSFSheet;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.poifs.filesystem.POIFSFileSystem;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellValue;
+import org.apache.poi.ss.usermodel.FormulaEvaluator;
+import org.apache.poi.ss.usermodel.Row;
+
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
 
 import static android.support.v7.widget.DividerItemDecoration.VERTICAL;
@@ -89,6 +106,8 @@ public class AgregaViajeActivity extends AppCompatActivity implements AdapterVie
     private RecyclerView costo_recycler;
     private CostoAdaptador mCostoAdapter;
     private ChildEventListener mChildEventListener;
+    SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
+    SimpleDateFormat dateDM = new SimpleDateFormat("dd/MM");
 
     public void agregaViaje(View view) {
         mDataBase = FirebaseDatabase.getInstance();
@@ -99,7 +118,9 @@ public class AgregaViajeActivity extends AppCompatActivity implements AdapterVie
         } else {
             mreference = mDataBase.getReference().child(userId).child(uuid);
             generaViaje();
+            
             mreference.setValue(viaje);
+            enviaCorreo(null);
         }
         finish();
     }
@@ -195,7 +216,7 @@ public class AgregaViajeActivity extends AppCompatActivity implements AdapterVie
 
                     }
                     lugar.setText(viejeConsulta.getLugar());
-                    SimpleDateFormat dateFormat = new SimpleDateFormat("dd/mm/yyyy");
+
                     String strDate = dateFormat.format(viejeConsulta.getFechaInicio());
                     fechaInicio.setText(strDate);
                     fInicio = new Date(viejeConsulta.getFechaInicio());
@@ -228,20 +249,20 @@ public class AgregaViajeActivity extends AppCompatActivity implements AdapterVie
             if (costo_temp.getTicket() != null) {
                 descargaArchivos(costo_temp.getTicket());
             }
-        }catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
             System.out.println(e.getMessage());
         }
     }
 
     public void descargaArchivos(String url) throws IOException {
-        mStorageReference=mFirebaseStorage.getReferenceFromUrl(url);
+        mStorageReference = mFirebaseStorage.getReferenceFromUrl(url);
         File imagePath = new File(getFilesDir(), "images");
-        Uri uri=Uri.parse(url);
+        Uri uri = Uri.parse(url);
 
 
         File localFile = new File(imagePath, uri.getLastPathSegment());
-Log.d("AgregaviajeActivity",localFile.getAbsolutePath());
+        Log.d("AgregaviajeActivity", localFile.getAbsolutePath());
         mStorageReference.getFile(localFile).addOnSuccessListener(new OnSuccessListener<FileDownloadTask.TaskSnapshot>() {
             @Override
             public void onSuccess(FileDownloadTask.TaskSnapshot taskSnapshot) {
@@ -255,15 +276,162 @@ Log.d("AgregaviajeActivity",localFile.getAbsolutePath());
         });
     }
 
+    public static void copy(AssetManager assetManager, File dst) throws IOException {
+
+        InputStream in = assetManager.open("Gastos.xls");
+        try {
+            OutputStream out = new FileOutputStream(dst);
+            try {
+                // Transfer bytes from in to out
+                byte[] buf = new byte[1024];
+                int len;
+                while ((len = in.read(buf)) > 0) {
+                    out.write(buf, 0, len);
+                }
+            } finally {
+                out.close();
+            }
+        } finally {
+            in.close();
+        }
+    }
+
+    public Uri creaExcel() throws IOException {
+        InputStream myInput;
+// initialize asset manager
+        AssetManager assetManager = getAssets();
+        File imagePath = new File(getFilesDir(), "images");
+        File file = new File(imagePath,
+                nombre.getText().toString().replace(" ", "_")
+                        + fechaFin.getText().toString().replace("/", "") + ".xls");
+
+        // copy(assetManager, file);
+//  open excel file name as myexcelsheet.xls
+        // myInput = new FileInputStream(assetManager.open("Gastos.xls"));
+
+// Create a workbook using the File System
+        HSSFWorkbook myWorkBook = new HSSFWorkbook(assetManager.open("Gastos.xls"));
+        myWorkBook.setForceFormulaRecalculation(true);
+        FormulaEvaluator evaluator = myWorkBook.getCreationHelper().createFormulaEvaluator();
+
+// Get the first sheet from workbook
+        HSSFSheet mySheet = myWorkBook.getSheetAt(0);
+        //Iterator<Row> rowIter = mySheet.rowIterator();
+        Row currentRow = mySheet.getRow(0);//empresa
+        currentRow = mySheet.getRow(1);//moneda
+        currentRow.getCell(6)
+                .setCellValue(spinner.getSelectedItem().toString());
+        currentRow = mySheet.getRow(6);//nombre y rfc
+        currentRow.getCell(2)
+                .setCellValue(nombre.getText().toString());//nombre
+        currentRow.getCell(6)
+                .setCellValue(rfc.getText().toString());//rfc
+        currentRow = mySheet.getRow(7);//lugar, fecha inicio fecha fin
+        currentRow.getCell(2)
+                .setCellValue("A " + lugar.getText().toString() + ", del " +
+                        dateFormat.format(fInicio.getTime()) +
+                        " al " + dateFormat.format(fFin.getTime()));
+        currentRow = mySheet.getRow(8);//motivo
+        currentRow.getCell(2)
+                .setCellValue(motivo.getText().toString());
+        currentRow = mySheet.getRow(23);//nombre
+        currentRow.getCell(5)
+                .setCellValue(nombre.getText().toString());
+        mySheet = myWorkBook.getSheetAt(1);
+        int i=3;
+        for (CostoMensaje costo :mCostoAdapter.getmCostoEntries()){
+            currentRow= mySheet.getRow(i);
+            currentRow.getCell(0).setCellValue(costo.getClave().substring(0,1));//tipo de costo
+            currentRow.getCell(1).setCellValue(dateDM.format(costo.getFecha()));
+            currentRow.getCell(2).setCellValue(costo.getEstablecimiento());
+            currentRow.getCell(3).setCellValue(costo.getConcepto());
+            currentRow.getCell(4).setCellValue(costo.getFolio());
+            currentRow.getCell(5).setCellValue(costo.getMoneda());
+            currentRow.getCell(6).setCellValue(costo.getMonto());
+            currentRow.getCell(7).setCellValue(costo.getAdicional());
+            currentRow.getCell(8).setCellValue(costo.getIva());
+            i++;
+        }
+        HSSFFormulaEvaluator formulas=myWorkBook.getCreationHelper().createFormulaEvaluator();
+        formulas.setIgnoreMissingWorkbooks(true);
+        formulas.evaluateAll();
+
+
+        formulas.evaluateAll();
+        FileOutputStream fileOut = new FileOutputStream(file);
+        myWorkBook.write(fileOut);
+        fileOut.close();
+        myWorkBook.close();
+
+        //textView.append("\n");)
+        /*while (rowIter.hasNext()) {
+            HSSFRow myRow = (HSSFRow) rowIter.next();
+
+            Iterator<Cell> cellIter = myRow.cellIterator();
+
+            String sno = "", date = "", det = "";
+            while (cellIter.hasNext()) {
+                HSSFCell myCell = (HSSFCell) cellIter.next();
+
+                switch (myCell.getCellType()) {
+                    case Cell.CELL_TYPE_BOOLEAN:
+
+
+                    case Cell.CELL_TYPE_NUMERIC:
+
+                    case Cell.CELL_TYPE_STRING:
+                        sno += " " + myCell.toString();
+                        break;
+                    case Cell.CELL_TYPE_BLANK:
+                        break;
+                    case Cell.CELL_TYPE_ERROR:
+                        break;
+
+                    // CELL_TYPE_FORMULA will never happen
+                    case Cell.CELL_TYPE_FORMULA:
+                        CellValue cellValue = evaluator.evaluate(myCell);
+                        switch (cellValue.getCellType()) {
+                            case Cell.CELL_TYPE_BOOLEAN:
+
+
+                            case Cell.CELL_TYPE_NUMERIC:
+                                sno += " " + cellValue.getNumberValue();
+
+                            case Cell.CELL_TYPE_STRING:
+                                sno += " " + cellValue.getStringValue();
+                                break;
+                            case Cell.CELL_TYPE_BLANK:
+                                break;
+                            case Cell.CELL_TYPE_ERROR:
+                                break;
+                        }
+
+                        break;
+                }
+            }
+           // textView.append(sno + "\n");
+        }*/
+
+        return FileProvider.getUriForFile(this, "Mygymmate.gymmate.fileprovider", file);
+
+    }
+
+
     public void enviaCorreo(File file) {
-        Intent intent = new Intent();
-        intent.setAction(Intent.ACTION_SEND_MULTIPLE);
-        Uri contentUri = FileProvider.getUriForFile(mContext, "Mygymmate.gymmate.fileprovider", file);
-        ArrayList<Uri> files = new ArrayList<Uri>();
-        files.add(contentUri);
-        intent.putParcelableArrayListExtra(Intent.EXTRA_STREAM, files);
-        intent.setType("application/pdf");
-        startActivity(intent);
+        try {
+            Intent intent = new Intent();
+            intent.setAction(Intent.ACTION_SEND_MULTIPLE);
+            // Uri contentUri = FileProvider.getUriForFile(mContext, "Mygymmate.gymmate.fileprovider", file);
+            ArrayList<Uri> files = new ArrayList<Uri>();
+            //  files.add(contentUri);
+            files.add(creaExcel());
+            intent.putParcelableArrayListExtra(Intent.EXTRA_STREAM, files);
+            intent.setType("*/*");
+            startActivity(intent);
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println(e.getMessage());
+        }
     }
 
     public void agregaFechaInicio(View view) {

@@ -16,10 +16,16 @@ public class CostoAdaptador extends RecyclerView.Adapter<CostoAdaptador.CostoVie
     private static final String DATE_FORMAT = "dd/MM/yyy";
     private List<CostoMensaje> mCostoEntries;
     private Context mContext;
-public CostoAdaptador(Context context, CostoClickListener clickListener){
-    mContext = context;
-    mCostoClickListener = clickListener;
-}
+
+    public CostoAdaptador(Context context, CostoClickListener clickListener) {
+        mContext = context;
+        mCostoClickListener = clickListener;
+    }
+
+    public List<CostoMensaje> getmCostoEntries() {
+        return mCostoEntries;
+    }
+
     public void addEntrie(CostoMensaje costo) {
         if (mCostoEntries == null)
             mCostoEntries = new ArrayList<CostoMensaje>();
@@ -32,6 +38,7 @@ public CostoAdaptador(Context context, CostoClickListener clickListener){
         this.mCostoEntries = mTaskEntries;
         notifyDataSetChanged();
     }
+
     @NonNull
     @Override
     public CostoViewHolder onCreateViewHolder(@NonNull ViewGroup viewGroup, int i) {
@@ -44,11 +51,12 @@ public CostoAdaptador(Context context, CostoClickListener clickListener){
 
     @Override
     public int getItemCount() {
-        if(mCostoEntries==null)
-        return 0;
+        if (mCostoEntries == null)
+            return 0;
         else
             return mCostoEntries.size();
     }
+
     @Override
     public void onBindViewHolder(@NonNull CostoViewHolder costoViewHolder, int i) {
         CostoMensaje costo = mCostoEntries.get(i);
@@ -59,21 +67,24 @@ public CostoAdaptador(Context context, CostoClickListener clickListener){
         costoViewHolder.uiid_costo.setText(costo.getUuid());
 
     }
+
     public interface CostoClickListener {
         void onItemClickListener(String itemId);
     }
+
     class CostoViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
         TextView text_clave_costo;
         TextView text_fecha_costo;
         TextView text_establecimiento;
         TextView text_folio_factura;
         TextView uiid_costo;
+
         public CostoViewHolder(@NonNull View itemView) {
             super(itemView);
-            text_clave_costo=(TextView) itemView.findViewById(R.id.text_clave_costo);
-            text_fecha_costo=(TextView) itemView.findViewById(R.id.text_fecha_costo);
-            text_establecimiento=(TextView) itemView.findViewById(R.id.text_establecimiento);
-            text_folio_factura=(TextView) itemView.findViewById(R.id.text_folio_factura);
+            text_clave_costo = (TextView) itemView.findViewById(R.id.text_clave_costo);
+            text_fecha_costo = (TextView) itemView.findViewById(R.id.text_fecha_costo);
+            text_establecimiento = (TextView) itemView.findViewById(R.id.text_establecimiento);
+            text_folio_factura = (TextView) itemView.findViewById(R.id.text_folio_factura);
             uiid_costo = (TextView) itemView.findViewById(R.id.uiid_costo);
             itemView.setOnClickListener(this);
         }
