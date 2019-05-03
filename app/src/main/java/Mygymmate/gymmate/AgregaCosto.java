@@ -82,32 +82,39 @@ public class AgregaCosto extends AppCompatActivity implements AdapterView.OnItem
     private Button agregar_costo;
     private CostoMensaje costoMensaje;
     private Uri agregaPdf, agregaXML, agregaIMG;
+    private ViajeMensaje viajeMensaje;
 
-    public void enviaCorreo(Uri file){
+    public void enviaCorreo(Uri file) {
         Intent intent = new Intent();
         intent.setAction(Intent.ACTION_SEND_MULTIPLE);
-       // Uri contentUri = FileProvider.getUriForFile(mContext, "Mygymmate.gymmate.fileprovider", file);
+        // Uri contentUri = FileProvider.getUriForFile(mContext, "Mygymmate.gymmate.fileprovider", file);
         ArrayList<Uri> files = new ArrayList<Uri>();
         files.add(file);
         intent.putParcelableArrayListExtra(Intent.EXTRA_STREAM, files);
         intent.setType("application/pdf");
         startActivity(intent);
     }
+
     public void agregaCosto(View view) {
 
-
-        mDataBase = FirebaseDatabase.getInstance();
-        if (!modificar) {
+        if (validarDatos()) {
+            mDataBase = FirebaseDatabase.getInstance();
             mreference = mDataBase.getReference().child(userId).child(viaje_uuid);
-            generaCosto();
-            mreference.push().setValue(costoMensaje);
-        } else {
-            mreference = mDataBase.getReference().child(userId).child(viaje_uuid).child(costo_uuid);
-            generaCosto();
-            mreference.setValue(costoMensaje);
+
+            if (!modificar) {
+                generaCosto();
+                viajeMensaje.getCostos().add(costoMensaje);
+
+            } else {
+                generaCosto();
+                viajeMensaje.getCostos().set(Integer.parseInt(costo_uuid), costoMensaje);
+
+            }
+            mreference.setValue(viajeMensaje);
+            finish();
         }
-        finish();
     }
+
 
     public void subeArchivoFirebase(Uri archivoSubir, final int tipo) {
         StorageReference archivo = mStorageReference.child(archivoSubir.getLastPathSegment());
@@ -124,7 +131,7 @@ public class AgregaCosto extends AppCompatActivity implements AdapterView.OnItem
                 // ...
                 if (tipo == 1) {
                     costoMensaje.setPdf(taskSnapshot.getMetadata().getReference().toString());
-                   // enviaCorreo(Uri.parse(taskSnapshot.getMetadata().getReference().toString()));
+                    // enviaCorreo(Uri.parse(taskSnapshot.getMetadata().getReference().toString()));
                 }
                 if (tipo == 2) {
                     costoMensaje.setXml(taskSnapshot.getMetadata().getReference().toString());
@@ -135,6 +142,27 @@ public class AgregaCosto extends AppCompatActivity implements AdapterView.OnItem
 
             }
         });
+    }
+
+    private boolean validarDatos() {
+        boolean respuesta = true;
+        if (fecha == null) {
+            respuesta = false;
+            agregafechacosto.setError("La fecha es requerida");
+        }
+        if (establecimiento_gasto.getText().toString() == null || establecimiento_gasto.getText().toString().equals("")) {
+            respuesta = false;
+            establecimiento_gasto.setError("El establecimiento es requerido");
+        }
+        if (concepto_gasto.getText().toString() == null || concepto_gasto.getText().toString().equals("")) {
+            respuesta = false;
+            concepto_gasto.setError("El concepto es requerido");
+        }
+        if (monto_costo.getText().toString() == null || monto_costo.getText().toString().equals("")) {
+            respuesta = false;
+            monto_costo.setError("El monto es requerido");
+        }
+        return respuesta;
     }
 
     private void generaCosto() {
@@ -203,18 +231,19 @@ public class AgregaCosto extends AppCompatActivity implements AdapterView.OnItem
 // Apply the adapter to the spinner
         tipo_gasto.setAdapter(adapter2);
         //inicializar el gasto
-        if (costo_uuid != null) {
-            agregar_costo.setText("Modificar gasto");
-            modificar = true;
-            mDataBase = FirebaseDatabase.getInstance();
-            mreference = mDataBase.getReference().child(userId).child(viaje_uuid).child(costo_uuid);
-            mreference.addValueEventListener(new ValueEventListener() {
-                @Override
-                public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                    GenericTypeIndicator<CostoMensaje> t = new GenericTypeIndicator<CostoMensaje>() {
-                    };
-                    CostoMensaje costoConsulta = dataSnapshot.getValue(t);
 
+        mDataBase = FirebaseDatabase.getInstance();
+        mreference = mDataBase.getReference().child(userId).child(viaje_uuid);
+        mreference.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                GenericTypeIndicator<ViajeMensaje> t = new GenericTypeIndicator<ViajeMensaje>() {
+                };
+                viajeMensaje = dataSnapshot.getValue(t);
+                if (costo_uuid != null) {
+                    agregar_costo.setText("Modificar gasto");
+                    modificar = true;
+                    CostoMensaje costoConsulta = viajeMensaje.getCostos().get(Integer.parseInt(costo_uuid));
                     SimpleDateFormat dateFormat = new SimpleDateFormat("dd/mm/yyyy");
                     String strDate = dateFormat.format(costoConsulta.getFecha());
                     agregafechacosto.setText(strDate);
@@ -228,14 +257,16 @@ public class AgregaCosto extends AppCompatActivity implements AdapterView.OnItem
                     tipo_gasto.setSelection(((ArrayAdapter) tipo_gasto.getAdapter()).getPosition(costoConsulta.getClave()));
                     tipo_moneda_gasto.setSelection(((ArrayAdapter) tipo_moneda_gasto.getAdapter()).getPosition(costoConsulta.getMoneda()));
                 }
+                costoMensaje = new CostoMensaje();
+            }
 
-                @Override
-                public void onCancelled(@NonNull DatabaseError databaseError) {
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
 
-                }
-            });
-        }
-        costoMensaje = new CostoMensaje();
+            }
+        });
+
+
     }
 
     public void agregaFecha(View view) {
@@ -367,6 +398,7 @@ public class AgregaCosto extends AppCompatActivity implements AdapterView.OnItem
 
                 agregafechacosto.setText(day + "/" + (month + 1) + "/" + year);
                 fecha = new SimpleDateFormat("dd/MM/yyyy").parse(day + "/" + (month + 1) + "/" + year);
+                agregafechacosto.setError(null);
 
             } catch (Exception e) {
 

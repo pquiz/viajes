@@ -14,7 +14,7 @@ import java.util.List;
 public class CostoAdaptador extends RecyclerView.Adapter<CostoAdaptador.CostoViewHolder> {
     private CostoClickListener mCostoClickListener = null;
     private static final String DATE_FORMAT = "dd/MM/yyy";
-    private List<CostoMensaje> mCostoEntries;
+    private ArrayList<CostoMensaje> mCostoEntries;
     private Context mContext;
 
     public CostoAdaptador(Context context, CostoClickListener clickListener) {
@@ -22,7 +22,7 @@ public class CostoAdaptador extends RecyclerView.Adapter<CostoAdaptador.CostoVie
         mCostoClickListener = clickListener;
     }
 
-    public List<CostoMensaje> getmCostoEntries() {
+    public ArrayList<CostoMensaje> getmCostoEntries() {
         return mCostoEntries;
     }
 
@@ -34,7 +34,7 @@ public class CostoAdaptador extends RecyclerView.Adapter<CostoAdaptador.CostoVie
 
     }
 
-    public void setCostoEntries(List<CostoMensaje> mTaskEntries) {
+    public void setCostoEntries(ArrayList<CostoMensaje> mTaskEntries) {
         this.mCostoEntries = mTaskEntries;
         notifyDataSetChanged();
     }
@@ -91,7 +91,7 @@ public class CostoAdaptador extends RecyclerView.Adapter<CostoAdaptador.CostoVie
 
         @Override
         public void onClick(View v) {
-            mCostoClickListener.onItemClickListener(uiid_costo.getText().toString());
+            mCostoClickListener.onItemClickListener(""+getAdapterPosition());
         }
     }
 }

@@ -118,7 +118,7 @@ public class AgregaViajeActivity extends AppCompatActivity implements AdapterVie
         } else {
             mreference = mDataBase.getReference().child(userId).child(uuid);
             generaViaje();
-            
+            viaje.setCostos(mCostoAdapter.getmCostoEntries());
             mreference.setValue(viaje);
             enviaCorreo(null);
         }
@@ -203,18 +203,7 @@ public class AgregaViajeActivity extends AppCompatActivity implements AdapterVie
 
                     ViajeMensaje viejeConsulta = dataSnapshot.getValue(t);
                     mCostoAdapter.setCostoEntries(null);
-                    for (DataSnapshot ds : dataSnapshot.getChildren()) {
-                        try {
-                            CostoMensaje commandObject = ds.getValue(CostoMensaje.class);
-                            commandObject.setUuid(ds.getKey());
-                            validaArchivos(commandObject);
-                            mCostoAdapter.addEntrie(commandObject);
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                            System.out.println(e.getMessage());
-                        }
-
-                    }
+                    mCostoAdapter.setCostoEntries(viejeConsulta.getCostos());
                     lugar.setText(viejeConsulta.getLugar());
 
                     String strDate = dateFormat.format(viejeConsulta.getFechaInicio());
