@@ -9,6 +9,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.AssetManager;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
@@ -51,6 +52,13 @@ import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.storage.FileDownloadTask;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
+import com.itextpdf.text.Document;
+import com.itextpdf.text.pdf.PdfContentByte;
+import com.itextpdf.text.pdf.PdfCopy;
+import com.itextpdf.text.pdf.PdfImportedPage;
+import com.itextpdf.text.pdf.PdfReader;
+import com.itextpdf.text.pdf.PdfSmartCopy;
+import com.itextpdf.text.pdf.PdfWriter;
 
 import org.apache.poi.hssf.usermodel.HSSFCell;
 import org.apache.poi.hssf.usermodel.HSSFFormulaEvaluator;
@@ -69,6 +77,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -108,21 +117,50 @@ public class AgregaViajeActivity extends AppCompatActivity implements AdapterVie
     private ChildEventListener mChildEventListener;
     SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
     SimpleDateFormat dateDM = new SimpleDateFormat("dd/MM");
+    ArrayList<Uri> files = new ArrayList<Uri>();
+    ArrayList<File> filesToMerge = new ArrayList<File>();
+
+    private boolean validarDatos() {
+        boolean respuesta = true;
+        if (fInicio == null) {
+            respuesta = false;
+            fechaInicio.setError("La fecha de inicio es requerida");
+        }
+        if (fFin == null) {
+            respuesta = false;
+            fechaFin.setError("La fecha de regreso es requerida");
+        }
+        if (nombre.getText().toString() == null || nombre.getText().toString().equals("")) {
+            respuesta = false;
+            nombre.setError("El nombre de la persona es requerido");
+        }
+        if (motivo.getText().toString() == null || motivo.getText().toString().equals("")) {
+            respuesta = false;
+            motivo.setError("El motivo es requerido");
+        }
+        if (lugar.getText().toString() == null || lugar.getText().toString().equals("")) {
+            respuesta = false;
+            lugar.setError("El lugar es requerido");
+        }
+        return respuesta;
+    }
 
     public void agregaViaje(View view) {
-        mDataBase = FirebaseDatabase.getInstance();
-        if (!modificar) {
-            mreference = mDataBase.getReference().child(userId);
-            generaViaje();
-            mreference.push().setValue(viaje);
-        } else {
-            mreference = mDataBase.getReference().child(userId).child(uuid);
-            generaViaje();
-            viaje.setCostos(mCostoAdapter.getmCostoEntries());
-            mreference.setValue(viaje);
-            enviaCorreo(null);
+        if (validarDatos()) {
+            mDataBase = FirebaseDatabase.getInstance();
+            if (!modificar) {
+                mreference = mDataBase.getReference().child(userId);
+                generaViaje();
+                mreference.push().setValue(viaje);
+            } else {
+                mreference = mDataBase.getReference().child(userId).child(uuid);
+                generaViaje();
+                viaje.setCostos(mCostoAdapter.getmCostoEntries());
+                mreference.setValue(viaje);
+                enviaCorreo(null);
+            }
+            finish();
         }
-        finish();
     }
 
     private void generaViaje() {
@@ -203,7 +241,15 @@ public class AgregaViajeActivity extends AppCompatActivity implements AdapterVie
 
                     ViajeMensaje viejeConsulta = dataSnapshot.getValue(t);
                     mCostoAdapter.setCostoEntries(null);
+                    files = new ArrayList<Uri>();
+                    filesToMerge = new ArrayList<File>();
                     mCostoAdapter.setCostoEntries(viejeConsulta.getCostos());
+                    if (viejeConsulta.getCostos() != null || viejeConsulta.getCostos().size() > 0) {
+                        for (CostoMensaje ctemp : viejeConsulta.getCostos()) {
+                            validaArchivos(ctemp);
+                        }
+                    }
+                    mergeFiles();
                     lugar.setText(viejeConsulta.getLugar());
 
                     String strDate = dateFormat.format(viejeConsulta.getFechaInicio());
@@ -227,16 +273,84 @@ public class AgregaViajeActivity extends AppCompatActivity implements AdapterVie
         }
     }
 
+    private class MergePdf extends AsyncTask<Void, Void, Void> {
+
+
+        protected void onProgressUpdate(Integer... progress) {
+
+        }
+
+        protected void onPostExecute(Long result) {
+
+        }
+
+        @Override
+        protected Void doInBackground(Void... voids) {
+            try {
+                if (filesToMerge.size() > 0) {
+                    List<InputStream> list = new ArrayList<InputStream>();
+                    File imagePath = new File(getFilesDir(), "images");
+                    File localFile = new File(imagePath, "Tickets" +
+                            nombre.getText().toString().replace(" ", "_")
+                            + fechaFin.getText().toString().replace("/", "") + ".pdf");
+                    files.add(FileProvider.getUriForFile(mContext, "Mygymmate.gymmate.fileprovider", localFile));
+                    OutputStream out = new FileOutputStream(localFile);
+                    for (File aTemp : filesToMerge) {
+
+                        list.add(new FileInputStream(aTemp));
+                    }
+                    /*Document document = new Document();
+PdfCopy copy = new PdfSmartCopy(document, new FileOutputStream(dest));
+document.open();
+PdfReader reader;
+String line = br.readLine();
+// loop over readers
+    // add the PDF to PdfCopy
+    reader = new PdfReader(baos.toByteArray());
+    copy.addDocument(reader);
+    reader.close();
+// end loop
+document.close();*/
+                    Document document = new Document();
+                   // PdfWriter writer = PdfWriter.getInstance(document, out);
+                    PdfCopy copy = new PdfSmartCopy(document, out);
+                    document.open();
+  //                  PdfContentByte cb = writer.getDirectContent();
+
+                    for (InputStream in : list) {
+                        PdfReader reader = new PdfReader(in);
+                        copy.addDocument(reader);
+                        reader.close();
+                    }
+
+                    out.flush();
+                    document.close();
+                    out.close();
+
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                System.out.println(e.getMessage());
+            }
+            return null;
+        }
+    }
+
+    private void mergeFiles() {
+
+        new MergePdf().execute((Void) null);
+    }
+
     public void validaArchivos(CostoMensaje costo_temp) {
         try {
             if (costo_temp.getPdf() != null) {
-                descargaArchivos(costo_temp.getPdf());
+                descargaArchivos(costo_temp.getPdf(), false);
             }
             if (costo_temp.getXml() != null) {
-                descargaArchivos(costo_temp.getXml());
+                descargaArchivos(costo_temp.getXml(), false);
             }
             if (costo_temp.getTicket() != null) {
-                descargaArchivos(costo_temp.getTicket());
+                descargaArchivos(costo_temp.getTicket(), true);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -244,7 +358,7 @@ public class AgregaViajeActivity extends AppCompatActivity implements AdapterVie
         }
     }
 
-    public void descargaArchivos(String url) throws IOException {
+    public void descargaArchivos(String url, boolean merge) throws IOException {
         mStorageReference = mFirebaseStorage.getReferenceFromUrl(url);
         File imagePath = new File(getFilesDir(), "images");
         Uri uri = Uri.parse(url);
@@ -252,6 +366,10 @@ public class AgregaViajeActivity extends AppCompatActivity implements AdapterVie
 
         File localFile = new File(imagePath, uri.getLastPathSegment());
         Log.d("AgregaviajeActivity", localFile.getAbsolutePath());
+        if (!merge)
+            files.add(FileProvider.getUriForFile(this, "Mygymmate.gymmate.fileprovider", localFile));
+        else
+            filesToMerge.add(localFile);
         mStorageReference.getFile(localFile).addOnSuccessListener(new OnSuccessListener<FileDownloadTask.TaskSnapshot>() {
             @Override
             public void onSuccess(FileDownloadTask.TaskSnapshot taskSnapshot) {
@@ -265,25 +383,6 @@ public class AgregaViajeActivity extends AppCompatActivity implements AdapterVie
         });
     }
 
-    public static void copy(AssetManager assetManager, File dst) throws IOException {
-
-        InputStream in = assetManager.open("Gastos.xls");
-        try {
-            OutputStream out = new FileOutputStream(dst);
-            try {
-                // Transfer bytes from in to out
-                byte[] buf = new byte[1024];
-                int len;
-                while ((len = in.read(buf)) > 0) {
-                    out.write(buf, 0, len);
-                }
-            } finally {
-                out.close();
-            }
-        } finally {
-            in.close();
-        }
-    }
 
     public Uri creaExcel() throws IOException {
         InputStream myInput;
@@ -327,10 +426,10 @@ public class AgregaViajeActivity extends AppCompatActivity implements AdapterVie
         currentRow.getCell(5)
                 .setCellValue(nombre.getText().toString());
         mySheet = myWorkBook.getSheetAt(1);
-        int i=3;
-        for (CostoMensaje costo :mCostoAdapter.getmCostoEntries()){
-            currentRow= mySheet.getRow(i);
-            currentRow.getCell(0).setCellValue(costo.getClave().substring(0,1));//tipo de costo
+        int i = 3;
+        for (CostoMensaje costo : mCostoAdapter.getmCostoEntries()) {
+            currentRow = mySheet.getRow(i);
+            currentRow.getCell(0).setCellValue(costo.getClave().substring(0, 1));//tipo de costo
             currentRow.getCell(1).setCellValue(dateDM.format(costo.getFecha()));
             currentRow.getCell(2).setCellValue(costo.getEstablecimiento());
             currentRow.getCell(3).setCellValue(costo.getConcepto());
@@ -341,7 +440,7 @@ public class AgregaViajeActivity extends AppCompatActivity implements AdapterVie
             currentRow.getCell(8).setCellValue(costo.getIva());
             i++;
         }
-        HSSFFormulaEvaluator formulas=myWorkBook.getCreationHelper().createFormulaEvaluator();
+        HSSFFormulaEvaluator formulas = myWorkBook.getCreationHelper().createFormulaEvaluator();
         formulas.setIgnoreMissingWorkbooks(true);
         formulas.evaluateAll();
 
@@ -411,7 +510,7 @@ public class AgregaViajeActivity extends AppCompatActivity implements AdapterVie
             Intent intent = new Intent();
             intent.setAction(Intent.ACTION_SEND_MULTIPLE);
             // Uri contentUri = FileProvider.getUriForFile(mContext, "Mygymmate.gymmate.fileprovider", file);
-            ArrayList<Uri> files = new ArrayList<Uri>();
+
             //  files.add(contentUri);
             files.add(creaExcel());
             intent.putParcelableArrayListExtra(Intent.EXTRA_STREAM, files);
@@ -530,10 +629,12 @@ public class AgregaViajeActivity extends AppCompatActivity implements AdapterVie
             try {
                 if (bandera) {
                     fechaInicio.setText(day + "/" + (month + 1) + "/" + year);
+                    fechaInicio.setError(null);
                     fInicio = new SimpleDateFormat("dd/MM/yyyy").parse(day + "/" + (month + 1) + "/" + year);
                 } else {
                     fechaFin.setText(day + "/" + (month + 1) + "/" + year);
                     fFin = new SimpleDateFormat("dd/MM/yyyy").parse(day + "/" + (month + 1) + "/" + year);
+                    fechaFin.setError(null);
                 }
             } catch (Exception e) {
 

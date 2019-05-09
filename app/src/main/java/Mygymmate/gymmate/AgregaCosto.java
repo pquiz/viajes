@@ -240,24 +240,25 @@ public class AgregaCosto extends AppCompatActivity implements AdapterView.OnItem
                 GenericTypeIndicator<ViajeMensaje> t = new GenericTypeIndicator<ViajeMensaje>() {
                 };
                 viajeMensaje = dataSnapshot.getValue(t);
+                costoMensaje = new CostoMensaje();
                 if (costo_uuid != null) {
                     agregar_costo.setText("Modificar gasto");
                     modificar = true;
-                    CostoMensaje costoConsulta = viajeMensaje.getCostos().get(Integer.parseInt(costo_uuid));
+                    costoMensaje= viajeMensaje.getCostos().get(Integer.parseInt(costo_uuid));
                     SimpleDateFormat dateFormat = new SimpleDateFormat("dd/mm/yyyy");
-                    String strDate = dateFormat.format(costoConsulta.getFecha());
+                    String strDate = dateFormat.format(costoMensaje.getFecha());
                     agregafechacosto.setText(strDate);
-                    fecha = new Date(costoConsulta.getFecha());
-                    establecimiento_gasto.setText(costoConsulta.getEstablecimiento());
-                    concepto_gasto.setText(costoConsulta.getConcepto());
-                    folio_factura.setText(costoConsulta.getFolio());
-                    monto_costo.setText(costoConsulta.getMonto().toString());
-                    adicional_costo.setText(costoConsulta.getAdicional().toString());
-                    iva_costo.setText(costoConsulta.getIva().toString());
-                    tipo_gasto.setSelection(((ArrayAdapter) tipo_gasto.getAdapter()).getPosition(costoConsulta.getClave()));
-                    tipo_moneda_gasto.setSelection(((ArrayAdapter) tipo_moneda_gasto.getAdapter()).getPosition(costoConsulta.getMoneda()));
+                    fecha = new Date(costoMensaje.getFecha());
+                    establecimiento_gasto.setText(costoMensaje.getEstablecimiento());
+                    concepto_gasto.setText(costoMensaje.getConcepto());
+                    folio_factura.setText(costoMensaje.getFolio());
+                    monto_costo.setText(costoMensaje.getMonto().toString());
+                    adicional_costo.setText(costoMensaje.getAdicional().toString());
+                    iva_costo.setText(costoMensaje.getIva().toString());
+                    tipo_gasto.setSelection(((ArrayAdapter) tipo_gasto.getAdapter()).getPosition(costoMensaje.getClave()));
+                    tipo_moneda_gasto.setSelection(((ArrayAdapter) tipo_moneda_gasto.getAdapter()).getPosition(costoMensaje.getMoneda()));
                 }
-                costoMensaje = new CostoMensaje();
+
             }
 
             @Override
